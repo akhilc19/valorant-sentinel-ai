@@ -1,0 +1,112 @@
+id: ai_chat
+namespace: valorant
+inputs:
+  - id: message
+    type: STRING
+  - id: context
+    type: STRING # JSON string of minified_match.json
+  - id: history
+    type: STRING # JSON string of chat history
+    defaults: "[]"
+
+tasks:
+  - id: generate_reply
+    type: io.kestra.plugin.scripts.python.Script
+    runner: DOCKER
+    docker:
+      image: python:3.9-slim
+    env:
+      OLLAMA_MODEL: "gpt-oss:120b-cloud"
+      OLLAMA_HOST: "https://ollama.com"
+      OLLAMA_API_KEY: "{{ secret('OLLAMA_API_KEY') }}"
+      CHAT_MESSAGE: "{{ inputs.message }}"
+      CHAT_CONTEXT: "{{ inputs.context }}"
+      CHAT_HISTORY: "{{ inputs.history }}"
+    beforeCommands:
+      - pip install requests
+    outputFiles:
+      - reply.json
+    script: |
+      import os
+      import json
+      import requests
+
+      try:
+          host = os.environ.get('OLLAMA_HOST')
+          model = os.environ.get('OLLAMA_MODEL')
+          api_key = os.environ.get('OLLAMA_API_KEY')
+          
+          message = os.environ.get('CHAT_MESSAGE')
+          context_str = os.environ.get('CHAT_CONTEXT', '{}')
+          history_str = os.environ.get('CHAT_HISTORY', '[]')
+          
+          try:
+              context = json.loads(context_str)
+          except:
+              context = {"info": "Context parsing failed"}
+              
+          try:
+              history = json.loads(history_str)
+          except:
+              history = []
+
+          # Build System Prompt
+          system_prompt = f"""
+          ACT AS: A Ruthless, Tier-1 Valorant Esports Coach.
+          CONTEXT DATA: {json.dumps(context, indent=2)}
+          
+          INSTRUCTIONS:
+          You are chatting with the player. Answer their question based on the match data provided.
+          Be concise, direct, and helpful. Use the stats to back up your points.
+          """
+
+          # Build Messages
+          messages = [{"role": "system", "content": system_prompt}]
+          
+          # Add History (limit to last 10 to check token space)
+          for h in history[-10:]:
+              role = h.get('role', 'user')
+              content = h.get('content', '')
+              messages.append({"role": role, "content": content})
+              
+          # Add current message
+          messages.append({"role": "user", "content": message})
+          
+          # Prepare Request (Ollama format or Generic OpenAI?)
+          # Standard Ollama /api/chat
+          
+          payload = {
+              "model": model,
+              "messages": messages,
+              "stream": False
+          }
+          
+          headers = {}
+          if api_key:
+              headers['Authorization'] = f"Bearer {api_key}"
+              
+          print(f"Sending to {host}...")
+          
+          # Use /api/chat for conversation
+          url = f"{host}/api/chat"
+          
+          response = requests.post(url, json=payload, headers=headers, timeout=60)
+          response.raise_for_status()
+          
+          res_json = response.json()
+          
+          # Extract reply
+          # Ollama /api/chat returns 'message': {'role': 'assistant', 'content': '...'}
+          reply_content = res_json.get('message', {}).get('content', '')
+          if not reply_content:
+              # Fallback for generic completion endpoints if schema differs
+              reply_content = res_json.get('response', 'No response text.')
+
+          with open('reply.json', 'w') as f:
+              json.dump({"reply": reply_content}, f)
+
+      except Exception as e:
+          err = f"Chat Error: {str(e)}"
+          print(err)
+          with open('reply.json', 'w') as f:
+              json.dump({"reply": err}, f)
