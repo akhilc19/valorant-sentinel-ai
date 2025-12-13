@@ -1,0 +1,48 @@
+id: ai_match_analysis
+namespace: valorant
+inputs:
+  - id: match_id
+    type: STRING
+  - id: player_name
+    type: STRING
+    defaults: ""
+
+tasks:
+  - id: fetch_match
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://api.henrikdev.xyz/valorant/v2/match/{{ inputs.match_id }}"
+    method: GET
+    headers:
+      Authorization: "{{ secret('HENRIK_API_KEY') }}"
+
+  - id: build_prompt
+    type: io.kestra.plugin.scripts.python.Script
+    runner: DOCKER
+    docker:
+      image: python:3.9-slim
+    env:
+      TARGET_PLAYER: "{{ inputs.player_name }}"
+    inputFiles:
+      match_data.json: "{{ outputs.fetch_match.body }}"
+    outputFiles:
+      - prompt.txt
+      - minified_match.json
+    script: "{{ read('scripts/ai_prompt_builder.py') }}"
+
+  - id: generate_insight
+    type: io.kestra.plugin.scripts.python.Script
+    runner: DOCKER
+    docker:
+      image: python:3.9-slim
+    env:
+      OLLAMA_MODEL: "gpt-oss:120b-cloud"
+      OLLAMA_HOST: "https://ollama.com"
+      OLLAMA_API_KEY: "{{ secret('OLLAMA_API_KEY') }}"
+    beforeCommands:
+      - pip install requests
+    inputFiles:
+      prompt.txt: "{{ outputs.build_prompt.outputFiles['prompt.txt'] }}"
+      minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
+    outputFiles:
+      - analysis.json
+    script: "{{ read('scripts/ai_match_generator.py') }}"
