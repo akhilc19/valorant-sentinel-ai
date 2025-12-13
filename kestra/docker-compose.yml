@@ -1,0 +1,28 @@
+services:
+  kestra:
+    image: kestra/kestra:latest
+    container_name: kestra-container1
+    user: root
+    command: server local --flow-path=/app/flows
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./flows:/app/flows
+      - ./scripts:/app/scripts
+      - kestra-data:/app/data
+    env_file:
+      - .env
+      - .env_encoded
+    environment:
+      KESTRA_SECRET_TYPE: "environment"
+      KESTRA_CONFIGURATION: |
+        kestra:
+          server:
+            basic-auth:
+              enabled: true
+              username: ${KESTRA_USER}
+              password: ${KESTRA_PASSWORD}
+
+volumes:
+  kestra-data:

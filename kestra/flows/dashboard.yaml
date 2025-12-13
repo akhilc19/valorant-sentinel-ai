@@ -1,0 +1,47 @@
+id: dashboard
+namespace: valorant
+inputs:
+  - id: username
+    type: STRING
+    defaults: "worstjett"
+  - id: tag
+    type: STRING
+    defaults: "1000"
+
+tasks:
+  - id: fetch_data
+    type: io.kestra.plugin.core.flow.Parallel
+    tasks:
+      - id: fetch_account
+        type: io.kestra.plugin.core.http.Request
+        uri: "https://api.henrikdev.xyz/valorant/v1/account/{{ inputs.username }}/{{ inputs.tag }}"
+        method: GET
+        headers:
+          Authorization: "{{ secret('HENRIK_API_KEY') }}"
+
+      - id: fetch_mmr
+        type: io.kestra.plugin.core.http.Request
+        uri: "https://api.henrikdev.xyz/valorant/v1/mmr/ap/{{ inputs.username }}/{{ inputs.tag }}"
+        method: GET
+        headers:
+          Authorization: "{{ secret('HENRIK_API_KEY') }}"
+
+      - id: fetch_matches
+        type: io.kestra.plugin.core.http.Request
+        uri: "https://api.henrikdev.xyz/valorant/v3/matches/ap/{{ inputs.username }}/{{ inputs.tag }}"
+        method: GET
+        headers:
+          Authorization: "{{ secret('HENRIK_API_KEY') }}"
+
+  - id: process_dashboard
+    type: io.kestra.plugin.scripts.python.Script
+    runner: DOCKER
+    docker:
+      image: python:3.9-slim
+    inputFiles:
+      account.json: "{{ outputs.fetch_account.body }}"
+      mmr.json: "{{ outputs.fetch_mmr.body }}"
+      matches.json: "{{ outputs.fetch_matches.body }}"
+    outputFiles:
+      - output.json
+    script: "{{ read('scripts/dashboard_parser.py') }}"
