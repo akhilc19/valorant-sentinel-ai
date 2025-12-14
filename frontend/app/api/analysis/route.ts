@@ -17,8 +17,17 @@ export async function POST(request: Request) {
     const formData = new FormData();
     formData.append('match_id', match_id);
     formData.append('player_name', player_name || '');
-    formData.append('agent_mode', agent_mode || 'autonomous');
-    if (manual_agent) formData.append('manual_agent', manual_agent);
+
+    // Validate and normalize agent_mode
+    const validatedAgentMode = (agent_mode === 'autonomous' || agent_mode === 'manual')
+      ? agent_mode
+      : 'autonomous';
+    formData.append('agent_mode', validatedAgentMode);
+
+    // Only append manual_agent when in manual mode
+    if (validatedAgentMode === 'manual' && manual_agent) {
+      formData.append('manual_agent', manual_agent);
+    }
 
     // Trigger flow and wait
     const triggerRes = await fetch(`${kestraUrl}/api/v1/executions/valorant/ai_match_analysis_v3?wait=true`, {

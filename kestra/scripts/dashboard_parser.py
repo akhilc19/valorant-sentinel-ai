@@ -46,6 +46,7 @@ if matches_list:
         result = "Unknown"
         kda = "0/0/0"
         agent_image = None
+        score = "0-0"
         
         players = match.get('players', {}).get('all_players', [])
         for p in players:
@@ -73,9 +74,10 @@ if matches_list:
                 
                 if team == 'red':
                     score = f"{red_rounds} - {blue_rounds}"
-                else:
+                elif team == 'blue':
                     score = f"{blue_rounds} - {red_rounds}"
-
+                else:
+                    score = f"{red_rounds} - {blue_rounds}"
                 
                 if has_won is True:
                     result = "Victory"
