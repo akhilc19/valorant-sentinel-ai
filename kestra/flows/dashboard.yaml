@@ -28,7 +28,7 @@ tasks:
 
       - id: fetch_matches
         type: io.kestra.plugin.core.http.Request
-        uri: "https://api.henrikdev.xyz/valorant/v3/matches/ap/{{ inputs.username }}/{{ inputs.tag }}"
+        uri: "https://api.henrikdev.xyz/valorant/v3/matches/ap/{{ inputs.username }}/{{ inputs.tag }}?size=10"
         method: GET
         headers:
           Authorization: "{{ secret('HENRIK_API_KEY') }}"
