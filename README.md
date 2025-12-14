@@ -26,7 +26,7 @@ This project is built on a **Modern Data Orchestration** architecture.
 
 | Component | Tech | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/) | Interactive UI, Dashboard, and Real-time Chat. |
+| **Frontend** | [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/) | Interactive UI, Dashboard, and Real-time Chat. |
 | **Orchestration** | [![Kestra](https://img.shields.io/badge/Kestra-IO-purple)](https://kestra.io/) | Managing complex AI flows, API fetching, and State Management. |
 | **Logic** | [![Python](https://img.shields.io/badge/Python-3.9-blue)](https://python.org/) | Data Science logic for Match Analysis and Heuristics. |
 | **AI Engine** | **Ollama / LLMs** | Powering the context-aware generation. |

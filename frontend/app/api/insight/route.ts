@@ -1,12 +1,5 @@
 import { NextResponse } from 'next/server';
 
-/**
- * Handle a POST request that triggers a Kestra `valorant/match_insight` execution and returns its analysis output.
- *
- * The request body must be JSON and include `match_id` (required). It may include `username` and `tag` (optional).
- *
- * @param request - Incoming Request whose JSON body contains `{ match_id, username?, tag? }`
- * @returns The HTTP JSON response: on success the parsed analysis output from `output.json`; on error an object with an `error` message and, when applicable, `details` or `outputs` to aid debugging.
 export async function POST(request: Request) {
   const body = await request.json();
   const { match_id, username, tag } = body;
