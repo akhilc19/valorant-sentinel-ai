@@ -1,5 +1,21 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * Handle POST requests to trigger a Kestra Valo match analysis workflow and return the resulting analysis.
+ *
+ * Expects the request JSON body to contain:
+ * - `match_id` (required): ID of the match to analyze.
+ * - `player_name` (optional): player name to focus the analysis on.
+ * - `agent_mode` (optional): analysis agent mode (defaults to `"autonomous"`).
+ * - `manual_agent` (optional): agent override when provided.
+ *
+ * The endpoint triggers the remote workflow, waits for completion, locates the task output (preferably `analysis.json`),
+ * retrieves and parses that output, and returns the parsed analysis. On error it returns a JSON object with an `error` message
+ * and, when helpful, additional diagnostic fields.
+ *
+ * @param request - Incoming POST request containing the JSON payload described above.
+ * @returns An object with the analysis data (for example `{ text: "..." }`) on success, or an `{ error: string, ... }` object on failure.
+ */
 export async function POST(request: Request) {
   const { match_id, player_name, agent_mode, manual_agent } = await request.json();
 

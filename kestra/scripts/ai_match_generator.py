@@ -5,6 +5,11 @@ import requests
 import argparse
 
 def main():
+    """
+    Run the end-to-end workflow: read a prompt file, request an AI completion from the configured Ollama endpoint, and write the resulting text to analysis.json.
+    
+    Accepts a required command-line argument `--prompt` (path to the prompt file). Respects these environment variables: `OLLAMA_HOST` (default 'https://ollama.com'), `OLLAMA_MODEL` (default 'gpt-oss:120b-cloud'), and optional `OLLAMA_API_KEY` for Bearer authorization. On success writes {"text": <ai response>} to analysis.json and prints a success message; on any failure writes {"text": "AI Generation Failed: <error>"} to analysis.json and prints the error message.
+    """
     try:
         # 1. Argument Parsing
         parser = argparse.ArgumentParser()

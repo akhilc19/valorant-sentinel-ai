@@ -4,6 +4,15 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+/**
+ * Render the player profile page with a search form, player summary, recent matches, and per-match insights.
+ *
+ * The component lets a user enter a username and tag to fetch a player's dashboard; it displays an error if the fetch fails.
+ * When dashboard data is present it renders a player card and a list of the last 10 matches. Each match can be expanded to
+ * show detailed match statistics (fetched on demand). An "AI Assist" action opens a dedicated analysis page in a new tab.
+ *
+ * @returns The JSX element for the profile UI
+ */
 export default function Profile() {
   const router = useRouter();
   const [username, setUsername] = useState('');
