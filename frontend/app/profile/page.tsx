@@ -8,6 +8,7 @@ export default function Profile() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [tag, setTag] = useState('');
+  const [region, setRegion] = useState('ap');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
@@ -25,7 +26,7 @@ export default function Profile() {
       const res = await fetch('/api/dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, tag }),
+        body: JSON.stringify({ username, tag, region }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to fetch dashboard');
@@ -87,10 +88,25 @@ export default function Profile() {
           <form onSubmit={search} className="relative w-full max-w-lg group">
             <div className="absolute -inset-1 bg-gradient-to-r from-rose-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative flex bg-neutral-900 rounded-2xl ring-1 ring-white/10 shadow-2xl overflow-hidden">
+              <div className="relative w-1/5 border-r border-white/5">
+                <select
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  className="w-full h-full bg-transparent text-white px-2 py-4 text-center appearance-none focus:outline-none font-bold uppercase tracking-wider cursor-pointer hover:bg-white/5 transition-colors"
+                >
+                  <option value="ap" className="bg-neutral-900">AP</option>
+                  <option value="na" className="bg-neutral-900">NA</option>
+                  <option value="eu" className="bg-neutral-900">EU</option>
+                  <option value="kr" className="bg-neutral-900">KR</option>
+                  <option value="latam" className="bg-neutral-900">LATAM</option>
+                  <option value="br" className="bg-neutral-900">BR</option>
+                </select>
+              </div>
+
               <input
                 type="text"
                 placeholder="Username"
-                className="bg-transparent text-white px-6 py-4 w-1/2 focus:outline-none placeholder-neutral-600 text-lg border-r border-white/5"
+                className="bg-transparent text-white px-6 py-4 w-2/5 focus:outline-none placeholder-neutral-600 text-lg border-r border-white/5"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />

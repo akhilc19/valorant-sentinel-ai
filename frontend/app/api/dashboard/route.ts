@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { username, tag } = await request.json();
+  const { username, tag, region } = await request.json();
 
   if (!username || !tag) {
     return NextResponse.json({ error: 'Username and tag are required' }, { status: 400 });
@@ -16,6 +16,9 @@ export async function POST(request: Request) {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('tag', tag);
+    formData.append('region', region || 'ap');
+
+    console.log('[Dashboard API] Triggering flow with:', { username, tag, region: region || 'ap' });
 
     const triggerRes = await fetch(`${kestraUrl}/api/v1/executions/valorant/dashboard?wait=true`, {
       method: 'POST',
