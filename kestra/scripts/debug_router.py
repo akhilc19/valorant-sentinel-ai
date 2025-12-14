@@ -1,5 +1,9 @@
-
 def test():
+    """
+    Evaluate sample match data and print derived metrics and a decision category.
+    
+    Constructs a sample payload, extracts metadata and combat values with defaults, parses KDA and score strings, computes KDA ratio, score difference, and ACS, then determines one of the decision categories: TEAM_DIFF, CARRIED_WIN, CLOSE_MATCH, STOMP_WIN, TILT_DETECTED, or STANDARD. If score parsing fails, score difference is set to 0. Prints the computed KDA ratio, score difference, result, and final decision.
+    """
     data = {
       "metadata": {
         "result": "Defeat",
