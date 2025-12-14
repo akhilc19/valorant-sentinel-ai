@@ -36,20 +36,20 @@ tasks:
     script: "{{ read('scripts/ai_prompt_builder.py') }}"
 
   # --- Router Logic ---
-  - id: determine_agent
-    type: io.kestra.plugin.core.flow.If
-    condition: "{{ inputs.agent_mode == 'autonomous' }}"
-    then:
-      - id: run_router
-        type: io.kestra.plugin.scripts.python.Script
-        runner: DOCKER
-        docker:
-          image: python:3.9-slim
-        inputFiles:
-          minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
-        outputFiles:
-          - decision.txt
-        script: "{{ read('scripts/analyze_context.py') }}"
+  - id: run_router
+    type: io.kestra.plugin.scripts.python.Script
+    when: "{{ inputs.agent_mode == 'autonomous' }}"
+    runner: DOCKER
+    docker:
+      image: python:3.9-slim
+    inputFiles:
+      minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
+    outputFiles:
+      - decision.txt
+    script: "{{ read('scripts/analyze_context.py') }}"
+        
+        
+
 
   # --- Prompt Assembly (Refactored) ---
   - id: assemble_prompt
@@ -65,8 +65,8 @@ tasks:
       match_stats.txt: "{{ outputs.build_prompt.outputFiles['match_stats.txt'] }}"
       minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
       
-      # Pass the decision file safely (fallback to json if router skipped)
-      decision.txt: "{{ outputs.run_router.outputFiles['decision.txt'] ?? outputs.build_prompt.outputFiles['minified_match.json'] }}"
+      # Pass the decision file; in manual mode this will be the minified json as fallback
+      decision.txt: "{{ outputs.run_router.outputFiles['decision.txt'] | default(outputs.build_prompt.outputFiles['minified_match.json']) }}"
 
       # Pass ALL prompts as generic inputs
       prompts_standard.txt: "{{ read('prompts/standard.txt') }}"
@@ -170,7 +170,7 @@ tasks:
       match_stats.txt: "{{ outputs.build_prompt.outputFiles['match_stats.txt'] }}"
       persona_name.txt: "{{ outputs.assemble_prompt.outputFiles['persona_name.txt'] }}"
       minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
-      decision.txt: "{{ outputs.run_router.outputFiles['decision.txt'] ?? outputs.build_prompt.outputFiles['minified_match.json'] }}"
+      decision.txt: "{{ outputs.run_router.outputFiles['decision.txt'] | default(outputs.build_prompt.outputFiles['minified_match.json']) }}"
       ai_match_generator.py: "{{ read('scripts/ai_match_generator.py') }}"
 
     outputFiles:
