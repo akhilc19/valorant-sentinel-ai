@@ -15,10 +15,8 @@ __pycache__/
 *.so
 
 # Environment & Secrets (CRITICAL)
-.env
-.env.local
-.env_encoded
-.env.*.local
+*.env
+*.env_encoded
 *.pem
 *.key
 
@@ -32,4 +30,4 @@ kestra/*.txt
 kestra/output/
 
 # Shell Scripts
-*.sh
+.sh
