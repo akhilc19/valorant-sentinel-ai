@@ -2,6 +2,11 @@ import requests
 import os
 
 def deploy_flow():
+    """
+    Deploys a Kestra YAML flow by creating it and, if it already exists, updating it.
+    
+    Reads the flow YAML from flows/ai_match_analysis.yaml and sends it to the Kestra server at http://localhost:8080 using basic auth credentials taken from the KESTRA_USER and KESTRA_PASSWORD environment variables. Attempts to create the flow via POST /api/v1/flows; if the server responds with status 422 and indicates the flow already exists, updates the flow via PUT /api/v1/flows/valorant/ai_match_analysis_v3. Results and errors are printed to stdout.
+    """
     kestra_url = "http://localhost:8080"
     user = os.environ.get("KESTRA_USER")
     password = os.environ.get("KESTRA_PASSWORD")

@@ -313,6 +313,11 @@ def get_economy_start(rounds, puuid):
     return eco
 
 def main():
+    """
+    Orchestrates extraction and aggregation of match metrics for a target player and writes a compact JSON payload and a human-readable stats file.
+    
+    Reads match data from match_data.json, selects a target player (from the TARGET_PLAYER environment variable or by highest score), computes core and advanced metrics (combat, positioning, economy, utility), and produces two primary outputs: a minified JSON summary (minified_match.json) and a human-readable stats text file (match_stats.txt). If the target player cannot be found, writes a prompt.txt and a minimal error JSON; on any unexpected error, writes an error message to both match_stats.txt and minified_match.json. This function performs file I/O and has no return value.
+    """
     try:
         # 1. Load Data
         with open('match_data.json', 'r') as f:

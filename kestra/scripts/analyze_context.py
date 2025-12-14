@@ -3,6 +3,11 @@ import sys
 import os
 
 def main():
+    """
+    Analyze the match data in minified_match.json and choose a categorical decision describing the match outcome.
+    
+    Reads 'minified_match.json', extracts metadata and combat metrics (KDA, ACS, score, rounds), computes simple metrics (KDA ratio, score difference), and applies prioritized heuristics to select one of: TEAM_DIFF, CARRIED_WIN, CLOSE_MATCH, STOMP_WIN, TILT_DETECTED, or STANDARD. Emits a human-readable summary to stdout, prints a Kestra-style output line setting the `decision`, and writes the chosen decision to 'decision.txt'. If an error occurs, emits the fallback decision STANDARD.
+    """
     try:
         # 1. Load Data
         with open('minified_match.json', 'r') as f:

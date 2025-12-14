@@ -5,6 +5,11 @@ import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 
+/**
+ * Render the Match Analysis page which accepts a player name and match ID, submits an analysis request (including selected agent mode and manual coach), displays the returned analysis, and provides an interactive coach chat panel fed by the analysis context.
+ *
+ * @returns The rendered analysis page as a JSX element
+ */
 export default function Analysis() {
   const searchParams = useSearchParams();
   const [matchId, setMatchId] = useState('');
