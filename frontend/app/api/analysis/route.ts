@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { match_id, player_name } = await request.json();
+  const { match_id, player_name, agent_mode, manual_agent } = await request.json();
 
   if (!match_id) {
     return NextResponse.json({ error: 'Match ID is required' }, { status: 400 });
   }
 
   const kestraUrl = process.env.KESTRA_URL;
+  // Force HMR refresh
   const kestraUser = process.env.KESTRA_USER;
   const kestraPass = process.env.KESTRA_PASSWORD;
   const auth = Buffer.from(`${kestraUser}:${kestraPass}`).toString('base64');
@@ -16,9 +17,11 @@ export async function POST(request: Request) {
     const formData = new FormData();
     formData.append('match_id', match_id);
     formData.append('player_name', player_name || '');
+    formData.append('agent_mode', agent_mode || 'autonomous');
+    if (manual_agent) formData.append('manual_agent', manual_agent);
 
     // Trigger flow and wait
-    const triggerRes = await fetch(`${kestraUrl}/api/v1/executions/valorant/ai_match_analysis?wait=true`, {
+    const triggerRes = await fetch(`${kestraUrl}/api/v1/executions/valorant/ai_match_analysis_v3?wait=true`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,

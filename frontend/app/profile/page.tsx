@@ -141,7 +141,7 @@ export default function Profile() {
 
             {/* Matches List */}
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-neutral-300 mb-6 px-2">Last 5 Matches</h3>
+              <h3 className="text-xl font-semibold text-neutral-300 mb-6 px-2">Last 10 Matches</h3>
               {data.matches.map((match: any, idx: number) => (
                 <div key={idx} className="group">
                   <div
@@ -164,6 +164,8 @@ export default function Profile() {
                       </div>
                       <div className="flex items-center gap-4 text-sm text-neutral-400">
                         <span>KDA: <span className="text-white font-mono">{match.kda}</span></span>
+                        <span className="text-neutral-500">|</span>
+                        <span>Score: <span className="text-white font-mono">{match.score}</span></span>
                         <span className="text-xs text-neutral-600">{match.match_id}</span>
                       </div>
                     </div>
@@ -172,7 +174,7 @@ export default function Profile() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/analysis?match_id=${match.match_id}&player_name=${username}`);
+                          window.open(`/analysis?match_id=${match.match_id}&player_name=${username}`, '_blank');
                         }}
                         className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center gap-1.5 z-20 relative"
                       >
@@ -190,7 +192,7 @@ export default function Profile() {
                     <div className="bg-black/30 rounded-2xl border border-white/5 p-6 backdrop-blur-md mx-2">
                       {insightLoading[match.match_id] ? (
                         <div className="flex justify-center p-4">
-                          <div className="text-rose-500 text-sm font-medium animate-pulse">Running AI Analysis...</div>
+                          <div className="text-rose-500 text-sm font-medium animate-pulse">Getting Match Stats...</div>
                         </div>
                       ) : insightData[match.match_id]?.error ? (
                         <div className="text-red-400 text-center text-sm">{insightData[match.match_id].error}</div>
