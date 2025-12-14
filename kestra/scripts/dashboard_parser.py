@@ -46,6 +46,7 @@ if matches_list:
         result = "Unknown"
         kda = "0/0/0"
         agent_image = None
+        score = "0-0"
         
         players = match.get('players', {}).get('all_players', [])
         for p in players:
@@ -67,6 +68,17 @@ if matches_list:
                 team_data = teams.get(team, {})
                 has_won = team_data.get('has_won', None)
                 
+                # Score Calculation
+                red_rounds = teams.get('red', {}).get('rounds_won', 0)
+                blue_rounds = teams.get('blue', {}).get('rounds_won', 0)
+                
+                if team == 'red':
+                    score = f"{red_rounds} - {blue_rounds}"
+                elif team == 'blue':
+                    score = f"{blue_rounds} - {red_rounds}"
+                else:
+                    score = f"{red_rounds} - {blue_rounds}"
+                
                 if has_won is True:
                     result = "Victory"
                 elif has_won is False:
@@ -80,6 +92,7 @@ if matches_list:
             "map": map_name,
             "result": result,
             "kda": kda,
+            "score": score,
             "agent_image": agent_image
         }
         processed_matches.append(match_details)

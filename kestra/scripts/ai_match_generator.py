@@ -1,32 +1,35 @@
-
 import os
 import sys
 import json
 import requests
+import argparse
 
 def main():
     try:
-        # Configuration
+        # 1. Argument Parsing
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--prompt', required=True, help='Path to full prompt file')
+        args = parser.parse_args()
+        prompt_file = args.prompt
+
+        # 2. Configuration
         ollama_host = os.environ.get('OLLAMA_HOST', 'https://ollama.com')
         model = os.environ.get('OLLAMA_MODEL', 'gpt-oss:120b-cloud')
         api_key = os.environ.get('OLLAMA_API_KEY')
         
-        # Read prompt
-        try:
-            with open('prompt.txt', 'r') as f:
-                prompt = f.read()
-            with open('minified_match.json', 'r') as f:
-                context_data = json.load(f)
-        except FileNotFoundError:
-            prompt = "Hello, testing Ollama linkage."
-            context_data = {}
+        # 3. Read Prompt
+        if not os.path.exists(prompt_file):
+            raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
+            
+        with open(prompt_file, 'r') as f:
+            prompt_content = f.read()
 
         print(f"Connecting to AI at {ollama_host} with model {model}...")
 
-        # Payload
+        # 4. Payload
         payload = {
             "model": model,
-            "prompt": prompt,
+            "prompt": prompt_content,
             "stream": False
         }
         
@@ -34,46 +37,30 @@ def main():
         if api_key:
             headers['Authorization'] = f"Bearer {api_key}"
 
-        try:
-            response = requests.post(f"{ollama_host}/api/generate", json=payload, headers=headers, timeout=120)
-            response.raise_for_status()
-            result = response.json()
-            output_text = result.get('response', '')
-            
-            if not output_text:
-                 output_text = "Ollama returned empty response."
-
-        except requests.exceptions.ConnectionError:
-            output_text = f"Failed to connect to Ollama at {ollama_host}. Ensure it is running and accessible."
-        except Exception as api_err:
-             output_text = f"Ollama API Error: {str(api_err)}"
-
-        # Output as JSON
+        # 5. Send Request
+        response = requests.post(f"{ollama_host}/api/generate", json=payload, headers=headers, timeout=120)
+        response.raise_for_status()
         
-        # Extract the user-facing stats from the prompt file to show them above the AI analysis
-        # The prompt builder saves it as: STATS \n<!-- SPLIT_HERE -->\n INSTRUCTIONS
-        keys_stats = ""
-        try:
-            if "<!-- SPLIT_HERE -->" in prompt:
-                keys_stats = prompt.split("<!-- SPLIT_HERE -->")[0].strip()
-        except:
-            pass
-            
-        final_markdown = f"{keys_stats}\n\n---\n\n{output_text}" if keys_stats else output_text
+        # 6. Parse Response
+        result = response.json()
+        output_text = result.get('response', 'No response from AI.')
         
+        # 7. Output
+        # We wrap it in a JSON object as expected by the frontend/next steps
         output_obj = {
-            "text": final_markdown,
-            "context": context_data
+            "text": output_text
         }
         
         with open('analysis.json', 'w') as f:
             json.dump(output_obj, f)
+            
+        print("Analysis generated successfully.")
 
     except Exception as e:
-        err_msg = f"Script Critical Error: {str(e)}"
+        err_msg = f"AI Generation Failed: {str(e)}"
         print(err_msg)
         with open('analysis.json', 'w') as f:
             json.dump({"text": err_msg}, f)
-
+            
 if __name__ == "__main__":
     main()

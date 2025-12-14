@@ -351,9 +351,9 @@ def main():
         team = player.get('team', 'Blue')
         agent = player.get('character', 'Unknown Agent')
         
-        k = stats.get('kills', 0)
-        d = stats.get('deaths', 0)
-        a = stats.get('assists', 0)
+        k = stats.get('kills') or 0
+        d = stats.get('deaths') or 0
+        a = stats.get('assists') or 0
         
         damage = stats.get('damage_made') or stats.get('damage', 0)
         # Fallback ADR
@@ -366,28 +366,32 @@ def main():
         avg_score = round(stats.get('score', 0) / rounds_played, 0) if rounds_played > 0 else 0
 
         # HS%
-        head = stats.get('headshots', 0)
-        total_hits = head + stats.get('bodyshots', 0) + stats.get('legshots', 0)
+        head = stats.get('headshots') or 0
+        body = stats.get('bodyshots') or 0
+        leg = stats.get('legshots') or 0
+        total_hits = head + body + leg
         hs_percent = round((head / total_hits * 100), 1) if total_hits > 0 else 0
         
         # Utility
-        casts = player.get('ability_casts', {})
-        c_cast = casts.get('c_cast', 0)
-        q_cast = casts.get('q_cast', 0)
-        e_cast = casts.get('e_cast', 0)
-        x_cast = casts.get('x_cast', 0)
+        casts = player.get('ability_casts') or {}
+        if casts is None: casts = {}
+        
+        c_cast = casts.get('c_cast') or 0
+        q_cast = casts.get('q_cast') or 0
+        e_cast = casts.get('e_cast') or 0
+        x_cast = casts.get('x_cast') or 0
         
         # Fallback Utility
         if (c_cast + q_cast + e_cast + x_cast) == 0 and rounds:
             for rnd in rounds:
                 for ps in rnd.get('player_stats', []):
                     if ps.get('player_puuid') == puuid:
-                        round_casts = ps.get('ability_casts', {})
+                        round_casts = ps.get('ability_casts') or {}
                         if round_casts:
-                            c_cast += round_casts.get('c_cast', 0) or round_casts.get('c_casts', 0) or 0
-                            q_cast += round_casts.get('q_cast', 0) or round_casts.get('q_casts', 0) or 0
-                            e_cast += round_casts.get('e_cast', 0) or round_casts.get('e_casts', 0) or 0
-                            x_cast += round_casts.get('x_cast', 0) or round_casts.get('x_casts', 0) or 0
+                            c_cast += (round_casts.get('c_cast') or round_casts.get('c_casts') or 0)
+                            q_cast += (round_casts.get('q_cast') or round_casts.get('q_casts') or 0)
+                            e_cast += (round_casts.get('e_cast') or round_casts.get('e_casts') or 0)
+                            x_cast += (round_casts.get('x_cast') or round_casts.get('x_casts') or 0)
 
         plants = stats.get('plants', 0)
         defuses = stats.get('defuses', 0)
@@ -426,6 +430,26 @@ def main():
              enemy_rounds = match_info.get('teams', {}).get(enemy_key, {}).get('rounds_won', 0)
              won_match = my_rounds > enemy_rounds
 
+        # Calculate Relative Score
+        red_rounds = match_info.get('teams', {}).get('red', {}).get('rounds_won', 0)
+        blue_rounds = match_info.get('teams', {}).get('blue', {}).get('rounds_won', 0)
+        
+        if team_key == 'red':
+            my_score = red_rounds
+            enemy_score = blue_rounds
+        else:
+            my_score = blue_rounds
+            enemy_score = red_rounds
+            
+        # Sanity Fix: If Result says Victory but score implies loss, trust Result and swap scores.
+        # This protects against API data inconsistencies or team mapping errors.
+        if won_match and my_score < enemy_score:
+             my_score, enemy_score = enemy_score, my_score
+        elif not won_match and my_score > enemy_score:
+             my_score, enemy_score = enemy_score, my_score
+             
+        score_str = f"{my_score} - {enemy_score}"
+
         # 5. Construct Minified JSON
         minified = {
             "metadata": {
@@ -433,7 +457,7 @@ def main():
                 "mode": mode,
                 "result": "Victory" if won_match else "Defeat",
                 "rounds_played": rounds_played,
-                "score_string": f"{match_info.get('teams', {}).get('red', {}).get('rounds_won', 0)} - {match_info.get('teams', {}).get('blue', {}).get('rounds_won', 0)}"
+                "score_string": score_str
             },
             "identity": {
                 "name": player.get('name'),
@@ -467,15 +491,21 @@ def main():
             "scoreboard": scoreboard
         }
         
-        with open('minified_match.json', 'w') as f:
-            json.dump(minified, f, indent=2)
+        # 6. Build Outputs
+        
+        # Mode-Specific Context Note for Stats
+        is_standard_mode = mode.lower() in ['competitive', 'unrated', 'premier', 'swiftplay', 'standard', 'custom game']
+        mode_note = f"(Mode: {mode})" if is_standard_mode else f"(Mode: {mode} - Fun/Warmup, Stats may be limited)"
 
-        # 6. Build Prompt
-        final_file_content = f"""
+        # Construct Visual Stats Summary (match_stats.txt)
+        # This is solely for the LLM to 'see' the formatted data or for user display.
+        # It does NOT contain coaching instructions.
+        stats_markdown = f"""
 ### 📝 Match Context
 **👤 Player:** {player.get('name')} | **🏆 Rank:** {minified['identity']['rank']}
 **🦸 Agent:** {agent} | **📍 Map:** {map_name}
-**🏁 Result:** {minified['metadata']['result']} ({rounds_played} Rounds)
+**🏁 Result:** {minified['metadata']['result']} {mode_note}
+**📊 Rounds:** {rounds_played} | **Score:** {minified['metadata']['score_string']}
 
 **📈 Combat Stats:**
 • **KDA:** {minified['combat']['kda']} | **ACS:** {avg_score} | **ADR:** {adr}
@@ -484,61 +514,19 @@ def main():
 **🛡️ Utility Usage:**
 • **Ult (X):** {x_cast} | **Ability (E):** {e_cast}
 • **Ability (Q):** {q_cast} | **Ability (C):** {c_cast}
-        
-        <!-- SPLIT_HERE -->
-        ACT AS: A Ruthless, Tier-1 Valorant Esports Coach.
-        
-        [DATA_START]
-        {json.dumps(minified, indent=2)}
-        [DATA_END]
-        
-        INSTRUCTIONS:
-        Analyze the JSON data above. Focus on:
-        1. Combat efficiency (ADR/HS% + First Duels/Trades).
-        2. Utility usage (Cast counts vs rounds played).
-        3. Economy (Review 'economy_full' saves/forces + 'economy_context').
-        4. Positioning (Avg death time, Entry deaths).
-        5. Match Context: Compare performance against 'scoreboard' (Did they carry?).
-        
-        OUTPUT FORMAT (Strict Markdown):
-        - DO NOT use Markdown Tables (they render poorly).
-        - Use Header 3 (###) for sections.
-        - Use Bold (**Text**) for key metrics.
-        - Keep it punchy and easy to read.
-        
-        ## 🎯 Match Grade: [Score]/100
-        
-        ### 📊 Performance Analysis
-        
-        #### 🔫 Mechanics (Aim & Duels): [Score]/20
-        * **Analysis:** [Reasoning based on HS% & First Fuel win rate]
-        
-        #### 💥 Impact (Damage & Trades): [Score]/20
-        * **Analysis:** [Reasoning using trade stats]
-        
-        #### 🧠 Game Sense (Positioning): [Score]/20
-        * **Analysis:** [Analyze death times & entry deaths]
-        
-        #### 🛡️ Utility & Economy: [Score]/20
-        * **Analysis:** [Analyze util usage & buy decisions]
-        
-        #### 🎭 Role Fulfillment ({agent}): [Score]/20
-        * **Analysis:** [Did they do their job?]
-        
-        ### 🛑 Critical Issues
-        * [Observation 1]
-        * [Observation 2]
-        
-        ### 🚀 The Fix
-        > [Actionable coaching directive]
-        """
+"""
 
-        with open('prompt.txt', 'w') as f:
-            f.write(final_file_content)
+        with open('match_stats.txt', 'w') as f:
+            f.write(stats_markdown)
+            
+        # Write Minified JSON (Data Payload)
+        with open('minified_match.json', 'w') as f:
+            json.dump(minified, f, indent=2)
 
     except Exception as e:
         print(f"Error: {e}")
-        with open('prompt.txt', 'w') as f: f.write(f"Error: {e}")
+        # Fallback outputs
+        with open('match_stats.txt', 'w') as f: f.write(f"Error extracting stats: {e}")
         with open('minified_match.json', 'w') as f: json.dump({"error": str(e)}, f)
 
 if __name__ == "__main__":

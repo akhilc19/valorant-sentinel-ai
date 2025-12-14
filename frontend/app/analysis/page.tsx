@@ -10,9 +10,13 @@ export default function Analysis() {
   const [matchId, setMatchId] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [insight, setInsight] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<string | null>(null);
   const [contextData, setContextData] = useState(null);
   const [error, setError] = useState('');
+
+  // New State for Agent Selection
+  const [agentMode, setAgentMode] = useState<'autonomous' | 'manual'>('autonomous');
+  const [manualAgent, setManualAgent] = useState('Standard Coach');
 
   useEffect(() => {
     const mId = searchParams.get('match_id');
@@ -21,23 +25,28 @@ export default function Analysis() {
     if (pName) setPlayerName(pName);
   }, [searchParams]);
 
-  const analyze = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setInsight(null);
+    setAnalysis(null);
     setContextData(null);
 
     try {
       const res = await fetch('/api/analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ match_id: matchId.trim(), player_name: playerName.trim() }),
+        body: JSON.stringify({
+          match_id: matchId.trim(),
+          player_name: playerName.trim(),
+          agent_mode: agentMode,
+          manual_agent: manualAgent
+        }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to fetch analysis');
 
-      setInsight(result.text || "No analysis text returned.");
+      setAnalysis(result.text || "No analysis text returned.");
       setContextData(result.context || {});
     } catch (err: any) {
       setError(err.message);
@@ -70,7 +79,7 @@ export default function Analysis() {
 
         {/* Input Form */}
         <div className="flex justify-center mb-16">
-          <form onSubmit={analyze} className="relative w-full max-w-2xl group">
+          <form onSubmit={handleSubmit} className="relative w-full max-w-2xl group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
             <div className="relative bg-[#0F0F0F] rounded-2xl ring-1 ring-white/10 shadow-2xl flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-white/5 overflow-hidden">
               <input
@@ -87,6 +96,37 @@ export default function Analysis() {
                 value={matchId}
                 onChange={(e) => setMatchId(e.target.value)}
               />
+              {/* Agent Mode Selection */}
+              <div className="flex flex-col md:flex-row gap-4 p-4 w-full md:w-auto">
+                <div className="flex-1">
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-1">Analysis Mode</label>
+                  <select
+                    value={agentMode}
+                    onChange={(e) => setAgentMode(e.target.value as 'autonomous' | 'manual')}
+                    className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded text-white focus:outline-none focus:border-indigo-500 appearance-none"
+                  >
+                    <option value="autonomous">Autonomous (AI Decides)</option>
+                    <option value="manual">Manual Selection</option>
+                  </select>
+                </div>
+
+                {agentMode === 'manual' && (
+                  <div className="flex-1">
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-1">Select Coach</label>
+                    <select
+                      value={manualAgent}
+                      onChange={(e) => setManualAgent(e.target.value)}
+                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded text-white focus:outline-none focus:border-indigo-500 appearance-none"
+                    >
+                      <option value="Standard Coach">Standard Coach</option>
+                      <option value="Tactical Coach">Tactical Coach (Close Games)</option>
+                      <option value="Mental Coach">Mental Coach (Tilt/Reset)</option>
+                      <option value="The Validator">The Validator (Team Diff)</option>
+                      <option value="The Backpack">The Backpack (Carried Win)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
               <button
                 type="submit"
                 disabled={loading}
@@ -109,7 +149,7 @@ export default function Analysis() {
         )}
 
         <AnimatePresence>
-          {insight && (
+          {analysis && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -127,7 +167,7 @@ export default function Analysis() {
                     prose-ul:space-y-2 prose-li:text-neutral-300
                     prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:bg-indigo-500/10 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-white
                     prose-table:w-full prose-table:text-sm prose-th:text-neutral-400 prose-active:text-white prose-td:text-neutral-300">
-                    <ReactMarkdown>{insight}</ReactMarkdown>
+                    <ReactMarkdown>{analysis}</ReactMarkdown>
                   </div>
                 </div>
               </div>

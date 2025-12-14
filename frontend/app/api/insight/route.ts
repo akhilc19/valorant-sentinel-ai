@@ -1,24 +1,35 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { match_id, username, tag } = await request.json();
+  const body = await request.json();
+  const { match_id, username, tag } = body;
 
-  if (!match_id || !username || !tag) {
-    return NextResponse.json({ error: 'Match ID, Username, and Tag are required' }, { status: 400 });
+  if (!match_id) {
+    return NextResponse.json({ error: 'Match ID is required' }, { status: 400 });
   }
 
+  // Validate required environment variables
   const kestraUrl = process.env.KESTRA_URL;
   const kestraUser = process.env.KESTRA_USER;
   const kestraPass = process.env.KESTRA_PASSWORD;
+
+  if (!kestraUrl || !kestraUser || !kestraPass) {
+    return NextResponse.json(
+      { error: 'Missing required Kestra configuration' },
+      { status: 500 }
+    );
+  }
+
   const auth = Buffer.from(`${kestraUser}:${kestraPass}`).toString('base64');
+  const executionUrl = `${kestraUrl}/api/v1/executions/valorant/match_insight`;
 
   try {
     const formData = new FormData();
     formData.append('match_id', match_id);
-    formData.append('username', username);
-    formData.append('tag', tag);
+    if (username) formData.append('username', username);
+    if (tag) formData.append('tag', tag);
 
-    const triggerRes = await fetch(`${kestraUrl}/api/v1/executions/valorant/match_insight?wait=true`, {
+    const triggerRes = await fetch(`${executionUrl}?wait=true`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,

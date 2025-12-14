@@ -35,5 +35,22 @@ curl -X POST "$KESTRA_URL/api/v1/namespaces/$NAMESPACE/files?path=scripts/ai_mat
   -F "fileContent=@scripts/ai_match_generator.py" \
   --user "$USER"
 
+echo -e "\nUploading analyze_context.py..."
+curl -X POST "$KESTRA_URL/api/v1/namespaces/$NAMESPACE/files?path=scripts/analyze_context.py" \
+  -H "Content-Type: multipart/form-data" \
+  -F "fileContent=@scripts/analyze_context.py" \
+  --user "$USER"
+
+# Upload Prompts
+PROMPTS=("standard.txt" "tactical.txt" "mental.txt" "validator.txt" "backpack.txt")
+mkdir -p prompts # Ensure dir exists locally just in case, though it should be mapped
+for prompt in "${PROMPTS[@]}"; do
+  echo -e "\nUploading prompts/$prompt..."
+  curl -X POST "$KESTRA_URL/api/v1/namespaces/$NAMESPACE/files?path=prompts/$prompt" \
+    -H "Content-Type: multipart/form-data" \
+    -F "fileContent=@prompts/$prompt" \
+    --user "$USER"
+done
+
 
 echo -e "\nDone."
