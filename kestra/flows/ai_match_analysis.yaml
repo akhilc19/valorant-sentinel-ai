@@ -1,4 +1,4 @@
-id: ai_match_analysis
+id: ai_match_analysis_v3
 namespace: valorant
 inputs:
   - id: match_id
@@ -6,6 +6,12 @@ inputs:
   - id: player_name
     type: STRING
     defaults: ""
+  - id: agent_mode
+    type: STRING
+    defaults: "autonomous" # autonomous | manual
+  - id: manual_agent
+    type: STRING
+    defaults: "Standard Coach" # Tactical Coach | Mental Coach | Standard Coach
 
 tasks:
   - id: fetch_match
@@ -25,9 +31,126 @@ tasks:
     inputFiles:
       match_data.json: "{{ outputs.fetch_match.body }}"
     outputFiles:
-      - prompt.txt
+      - match_stats.txt
       - minified_match.json
     script: "{{ read('scripts/ai_prompt_builder.py') }}"
+
+  # --- Router Logic ---
+  - id: determine_agent
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.agent_mode == 'autonomous' }}"
+    then:
+      - id: run_router
+        type: io.kestra.plugin.scripts.python.Script
+        runner: DOCKER
+        docker:
+          image: python:3.9-slim
+        inputFiles:
+          minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
+        outputFiles:
+          - decision.txt
+        script: "{{ read('scripts/analyze_context.py') }}"
+
+  # --- Prompt Assembly (Refactored) ---
+  - id: assemble_prompt
+    type: io.kestra.plugin.scripts.python.Script
+    runner: DOCKER
+    docker:
+      image: python:3.9-slim
+    env:
+      # Pass mode to handle logic inside Python
+      AGENT_MODE: "{{ inputs.agent_mode }}" 
+      MANUAL_AGENT: "{{ inputs.manual_agent }}"
+    inputFiles:
+      match_stats.txt: "{{ outputs.build_prompt.outputFiles['match_stats.txt'] }}"
+      minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
+      
+      # Pass the decision file safely (fallback to json if router skipped)
+      decision.txt: "{{ outputs.run_router.outputFiles['decision.txt'] ?? outputs.build_prompt.outputFiles['minified_match.json'] }}"
+
+      # Pass ALL prompts as generic inputs
+      prompts_standard.txt: "{{ read('prompts/standard.txt') }}"
+      prompts_tactical.txt: "{{ read('prompts/tactical.txt') }}"
+      prompts_mental.txt: "{{ read('prompts/mental.txt') }}"
+      prompts_backpack.txt: "{{ read('prompts/backpack.txt') }}"
+      prompts_validator.txt: "{{ read('prompts/validator.txt') }}"
+      
+    outputFiles:
+      - full_prompt.txt
+      - persona_name.txt
+     
+    script: |
+      import os
+      import json
+
+      # 1. Determine which persona key to use
+      mode = os.environ.get('AGENT_MODE', 'autonomous')
+      manual_agent = os.environ.get('MANUAL_AGENT', '')
+      decision_key = 'standard' # Default
+
+      router_decision = "UNKNOWN"
+
+      if mode == 'manual':
+          if manual_agent == 'Tactical Coach': decision_key = 'tactical'
+          elif manual_agent == 'Mental Coach': decision_key = 'mental'
+          elif manual_agent == 'The Backpack': decision_key = 'backpack'
+          elif manual_agent == 'The Validator': decision_key = 'validator'
+          router_decision = "MANUAL_MODE"
+      else:
+          # Autonomous: Read from the decision file passed from previous step
+          # Note: We mapped decision.txt to minified.json if router skipped, but in autonomous mode router should have run.
+          try:
+              if os.path.exists('decision.txt'):
+                  with open('decision.txt', 'r') as f:
+                      content = f.read().strip()
+                      # Simple check to ensure we didn't read the fallback JSON
+                      if not content.startswith('{'): 
+                          router_decision = content
+          except:
+              pass
+          
+          # Map Router Output -> File Key
+          if router_decision == 'TEAM_DIFF': decision_key = 'validator'
+          elif router_decision == 'CARRIED_WIN': decision_key = 'backpack'
+          elif router_decision == 'CLOSE_MATCH': decision_key = 'tactical'
+          elif router_decision == 'TILT_DETECTED': decision_key = 'mental'
+          elif router_decision == 'STOMP_WIN': decision_key = 'standard'
+
+      # 2. Open the correct file
+      filename = f"prompts_{decision_key}.txt"
+      print(f"Selecting Persona File: {filename} (Decision: {router_decision})")
+
+      with open(filename, 'r') as f:
+          persona_content = f.read()
+
+      # 3. Merge Logic (Stats + Persona + Data)
+      with open('full_prompt.txt', 'w') as f_out:
+          with open('match_stats.txt', 'r') as f:
+              f_out.write(f.read())
+              f_out.write("\n\n---\n\n")
+          
+          f_out.write(persona_content)
+          f_out.write("\n\n---\n\n")
+          
+          f_out.write("[DATA_START]\n")
+          with open('minified_match.json', 'r') as f:
+              f_out.write(f.read())
+          f_out.write("\n[DATA_END]\n")
+
+      # 4. Extract Persona Name
+      first_line = persona_content.split('\n')[0].replace("ACT AS:", "").strip()
+      if not first_line: first_line = f"AI Coach ({decision_key})"
+      
+      with open('persona_name.txt', 'w') as f:
+          f.write(f"### 🧠 Active Agent: {first_line}")
+          
+      # 5. Save Decision for Debugging in Next Task
+      # We can't easily pass vars, so we'll just let the next task read decision.txt if it exists
+      # OR better, since we are using file passing, we don't need env vars anymore?
+      # The next task uses ROUTER_DECISION env var.
+      # We should update generate_insight to read decision.txt too!
+      
+      print("Full prompt assembled.")
 
   - id: generate_insight
     type: io.kestra.plugin.scripts.python.Script
@@ -38,11 +161,68 @@ tasks:
       OLLAMA_MODEL: "gpt-oss:120b-cloud"
       OLLAMA_HOST: "https://ollama.com"
       OLLAMA_API_KEY: "{{ secret('OLLAMA_API_KEY') }}"
+      AGENT_MODE: "{{ inputs.agent_mode }}"
     beforeCommands:
       - pip install requests
     inputFiles:
-      prompt.txt: "{{ outputs.build_prompt.outputFiles['prompt.txt'] }}"
+      # Previous tasks outputs
+      full_prompt.txt: "{{ outputs.assemble_prompt.outputFiles['full_prompt.txt'] }}"
+      match_stats.txt: "{{ outputs.build_prompt.outputFiles['match_stats.txt'] }}"
+      persona_name.txt: "{{ outputs.assemble_prompt.outputFiles['persona_name.txt'] }}"
       minified_match.json: "{{ outputs.build_prompt.outputFiles['minified_match.json'] }}"
+      decision.txt: "{{ outputs.run_router.outputFiles['decision.txt'] ?? outputs.build_prompt.outputFiles['minified_match.json'] }}"
+      ai_match_generator.py: "{{ read('scripts/ai_match_generator.py') }}"
+
     outputFiles:
       - analysis.json
-    script: "{{ read('scripts/ai_match_generator.py') }}"
+
+    script: |
+      import os
+      import sys
+      # Run the Dumb Executor
+      print("Running generator...")
+      exit_code = os.system("python ai_match_generator.py --prompt full_prompt.txt")
+
+      if exit_code != 0:
+          print("Generator script failed!")
+          sys.exit(1)
+
+      # Append Stats & Persona Name to Output
+      import json
+      try:
+          with open('analysis.json', 'r') as f:
+              res = json.load(f)
+              ai_text = res.get('text', '')
+
+          with open('match_stats.txt', 'r') as f:
+              stats_text = f.read()
+              
+          with open('persona_name.txt', 'r') as f:
+              persona_name = f.read()
+              
+          with open('minified_match.json', 'r') as f:
+              context_data = json.load(f)
+              
+          decision_debug = 'UNKNOWN'
+          try:
+              if os.path.exists('decision.txt'):
+                  with open('decision.txt', 'r') as f:
+                      content = f.read().strip()
+                      if not content.startswith('{'):
+                          decision_debug = content
+          except: pass
+          
+          mode_debug = os.environ.get('AGENT_MODE', 'UNKNOWN')
+
+          # Format: Stats [Newline] Persona Name [Newline] [Debug Removed] [Newline] AI Analysis
+          full_text = stats_text + "\n" + persona_name + "\n\n" + ai_text
+
+          res['text'] = full_text
+          res['context'] = context_data
+
+          with open('analysis.json', 'w') as f:
+              json.dump(res, f)
+
+      except Exception as e:
+          print(f"Error merging stats to output: {e}")
+          # Non-critical, continue
