@@ -6,7 +6,7 @@ def deploy_flow():
     user = os.environ.get("KESTRA_USER")
     password = os.environ.get("KESTRA_PASSWORD")
     
-    flow_path = "flows/ai_match_analysis.yaml"
+    flow_path = "flows/dashboard.yaml" # Changed from "flows/ai_match_analysis.yaml"
     
     with open(flow_path, 'r') as f:
         flow_content = f.read()
@@ -33,7 +33,7 @@ def deploy_flow():
         # Extract namespace/id - hardcoded for now as we know it
         # PUT /api/v1/flows/{namespace}/{id}
         response = requests.put(
-            f"{kestra_url}/api/v1/flows/valorant/ai_match_analysis_v3",
+            f"{kestra_url}/api/v1/flows/valorant/dashboard",
             data=flow_content,
             headers={"Content-Type": "application/x-yaml"},
             auth=(user, password)

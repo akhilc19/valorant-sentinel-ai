@@ -7,6 +7,9 @@ inputs:
   - id: tag
     type: STRING
     defaults: "1000"
+  - id: region
+    type: STRING
+    defaults: "ap"
 
 tasks:
   - id: fetch_data
@@ -21,23 +24,22 @@ tasks:
 
       - id: fetch_mmr
         type: io.kestra.plugin.core.http.Request
-        uri: "https://api.henrikdev.xyz/valorant/v1/mmr/ap/{{ inputs.username }}/{{ inputs.tag }}"
+        uri: "https://api.henrikdev.xyz/valorant/v1/mmr/{{ inputs.region }}/{{ inputs.username }}/{{ inputs.tag }}"
         method: GET
         headers:
           Authorization: "{{ secret('HENRIK_API_KEY') }}"
 
       - id: fetch_matches
         type: io.kestra.plugin.core.http.Request
-        uri: "https://api.henrikdev.xyz/valorant/v3/matches/ap/{{ inputs.username }}/{{ inputs.tag }}?size=10"
+        uri: "https://api.henrikdev.xyz/valorant/v3/matches/{{ inputs.region }}/{{ inputs.username }}/{{ inputs.tag }}?size=10"
         method: GET
         headers:
           Authorization: "{{ secret('HENRIK_API_KEY') }}"
 
   - id: process_dashboard
     type: io.kestra.plugin.scripts.python.Script
-    runner: DOCKER
-    docker:
-      image: python:3.9-slim
+    # Optimized: Running in PROCESS mode to avoid Docker overhead (38s -> <1s)
+    # runner: DOCKER (Removed)
     inputFiles:
       account.json: "{{ outputs.fetch_account.body }}"
       mmr.json: "{{ outputs.fetch_mmr.body }}"
