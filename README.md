@@ -18,7 +18,7 @@ It uses a **Heuristic Router** to analyze your match context before saying a wor
 - **Team Diff?** It validates your individual performance with the **Validator** persona.
 
 ### 🎥 Watch the Demo
-[![Watch the Demo](https://img.youtube.com/vi/SuS5_E3E_rM/0.jpg)](https://youtu.be/SuS5_E3E_rM)
+[![Watch Demo](https://img.shields.io/badge/Watch_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/SuS5_E3E_rM)
 
 ---
 
