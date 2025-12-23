@@ -1,8 +1,7 @@
 # 🦅 Valorant Sentinel AI
 
-> **An Adaptive, Router-Based AI Coach that doesn't just read stats—it understands context.**
+> **An Adaptive, Router-Based AI Coach that doesn't just read stats, it understands context.**
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tech](https://img.shields.io/badge/stack-Next.js_|_Kestra_|_Python-black)
 
 ## 🌟 Introduction
@@ -18,6 +17,9 @@ It uses a **Heuristic Router** to analyze your match context before saying a wor
 - **Carried Win?** It humbles you with the **"Backpack"** persona.
 - **Team Diff?** It validates your individual performance with the **Validator** persona.
 
+### 🎥 Watch the Demo
+[![Watch the Demo](https://img.youtube.com/vi/SuS5_E3E_rM/0.jpg)](https://youtu.be/SuS5_E3E_rM)
+
 ---
 
 ## 🏗️ Tech Stack
@@ -31,11 +33,11 @@ This project is built on a **Modern Data Orchestration** architecture.
 | **Logic** | [![Python](https://img.shields.io/badge/Python-3.9-blue)](https://python.org/) | Data Science logic for Match Analysis and Heuristics. |
 | **AI Engine** | **Ollama / LLMs** | Powering the context-aware generation. |
 | **Deploy** | **Docker** | Containerized environment for reproducibility. |
+| **Data Source** | **[HenrikDev API](https://github.com/Henrik-3/valorant-api)** | Unofficial Valorant API for match history and stats. |
 
 ---
 
 ## 📂 Project Structure
-
 ```bash
 valorant-sentinel/
 ├── 📁 frontend/             # Next.js Application
@@ -59,78 +61,36 @@ valorant-sentinel/
 
 ---
 
-## 🧠 The Agent Router (V3 Architecture)
-
-The core innovation of this project is the **File-Based State Machine** in Kestra.
-
-1.  **Ingest**: Fetches raw match data from HenrikDev API.
-2.  **Analyze**: Run `analyze_context.py` to calculate "Tilt Factor" and "Carry Score".
-3.  **Route**: Writes a decision file (`decision.txt`) to disk.
-4.  **Assemble**: Dynamically loads the correct `.txt` persona prompt based on the decision.
-5.  **Generate**: Feeds the assembled context to the LLM.
-
-*This ensures valid, context-aware advice 100% of the time, avoiding "hallucinated" coaching styles.*
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+
-- [HenrikDev API Key](https://docs.henrikdev.xyz/valorant.html) (Free)
-- A running Ollama instance (or generic OpenAI-compatible endpoint).
-
-### 1. Setup Backend (Kestra)
-```bash
-cd kestra
-# Create .env file with your API Keys
-echo "HENRIK_API_KEY=your_key_here" >> .env
-echo "OLLAMA_API_KEY=your_key_here" >> .env
-
-# Start the Orchestration Engine
-docker-compose up -d
-```
-> Kestra Dashboard will be available at `http://localhost:8080`
-
-### 2. Setup Frontend
-```bash
-cd frontend
-# Install dependencies
-npm install
-
-# Start Dev Server
-npm run dev
-```
-> App will be available at `http://localhost:3000`
-
----
-
 ## 🎮 Features
 
-### **Autonomous Mode**
-The system automatically detects the vibe of the match.
-- **Match**: Competitive, Abyss Map, 13-15 Loss.
-- **Router**: "Close Match Detected" -> Activates **Tactical Coach**.
-- **Advice**: Focused on economy management and specific round losses.
+### 🌐 Global Region Support
+Seamlessly track and analyze matches from any Valorant region:
+- **Major Regions**: AP, NA, EU, BR, KR, LATAM.
+- **Unified Interface**: Use the same dashboard regardless of where you play.
 
-### **Manual Mode**
-Want a specific review? You can force the agent persona.
-- Select **"The Validator"** to see if you really played well despite the loss.
-- Select **"The Backpack"** if you know you played poorly and want honest feedback.
+### 🧠 Intelligent Context Routing
+The AI doesn't just look at stats; it looks at *context*.
+- **Autonomous Mode**: Automatically detects the vibe of the match (e.g., Close Loss, Stomp Win, Tilt Game).
+- **Heuristic Engine**: Routes the analysis to the most appropriate "Coach Persona" for the situation.
+
+### 🎭 Adaptive Persona System
+Different matches require different feedback styles:
+- **The Tactical Coach**: For close losses (11-13). Focuses on economy, specific round mistakes, and positioning.
+- **The Mental Coach**: For tilt losses (3-13). Focuses on mental reset, preventing burnout, and "go next" mentality.
+- **The Backpack**: For carried wins. Humbles you when you win but played poorly.
+- **The Validator**: For "Team Diff" losses. Validates your strong individual performance despite the loss.
+
+### 💬 Interactive AI Chat
+Don't just read a report—talk to your coach.
+- **RAG-Powered**: The chat knows everything about the specific match you are discussing.
+- **Deep Dives**: Ask "Why did I die in Round 4?" or "How was my economy management?"
 
 ---
 
-## 🤝 Contributing
+## 📜 License
 
-1.  **Fork** the repo.
-2.  **Create** a feature branch (`git checkout -b feature/amazing-feature`).
-3.  **Commit** your changes using conventional commits (`git commit -m 'feat: add new persona'`).
-4.  **Push** to the branch.
-5.  **Open** a Pull Request.
+Distributed under the GNU General Public License v3.0. See `LICENSE` for more information.
 
----
+## ⚖️ Legal
 
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
+Valorant Sentinel isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.

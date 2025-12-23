@@ -16,10 +16,10 @@ inputs:
 tasks:
   - id: fetch_match
     type: io.kestra.plugin.core.http.Request
-    uri: "https://api.henrikdev.xyz/valorant/v2/match/{{ inputs.match_id }}"
+    uri: "{{ secret('VALO_API_URL') }}/valorant/v2/match/{{ inputs.match_id }}"
     method: GET
     headers:
-      Authorization: "{{ secret('HENRIK_API_KEY') }}"
+      Authorization: "{{ secret('VALO_API_KEY') }}"
 
   - id: build_prompt
     type: io.kestra.plugin.scripts.python.Script

@@ -17,24 +17,24 @@ tasks:
     tasks:
       - id: fetch_account
         type: io.kestra.plugin.core.http.Request
-        uri: "https://api.henrikdev.xyz/valorant/v1/account/{{ inputs.username }}/{{ inputs.tag }}"
+        uri: "{{ secret('VALO_API_URL') }}/valorant/v1/account/{{ inputs.username }}/{{ inputs.tag }}"
         method: GET
         headers:
-          Authorization: "{{ secret('HENRIK_API_KEY') }}"
+          Authorization: "{{ secret('VALO_API_KEY') }}"
 
       - id: fetch_mmr
         type: io.kestra.plugin.core.http.Request
-        uri: "https://api.henrikdev.xyz/valorant/v1/mmr/{{ inputs.region }}/{{ inputs.username }}/{{ inputs.tag }}"
+        uri: "{{ secret('VALO_API_URL') }}/valorant/v1/mmr/{{ inputs.region }}/{{ inputs.username }}/{{ inputs.tag }}"
         method: GET
         headers:
-          Authorization: "{{ secret('HENRIK_API_KEY') }}"
+          Authorization: "{{ secret('VALO_API_KEY') }}"
 
       - id: fetch_matches
         type: io.kestra.plugin.core.http.Request
-        uri: "https://api.henrikdev.xyz/valorant/v3/matches/{{ inputs.region }}/{{ inputs.username }}/{{ inputs.tag }}?size=10"
+        uri: "{{ secret('VALO_API_URL') }}/valorant/v3/matches/{{ inputs.region }}/{{ inputs.username }}/{{ inputs.tag }}?size=10"
         method: GET
         headers:
-          Authorization: "{{ secret('HENRIK_API_KEY') }}"
+          Authorization: "{{ secret('VALO_API_KEY') }}"
 
   - id: process_dashboard
     type: io.kestra.plugin.scripts.python.Script
